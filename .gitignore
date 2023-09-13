@@ -2,3 +2,4 @@
 tmp/
 go.mod
 go.sum
+.idea
