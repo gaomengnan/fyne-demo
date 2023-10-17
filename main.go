@@ -1,26 +1,25 @@
 package main
 
 import (
-	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/widget"
 )
 
 func main() {
-	a := app.New()
-	w := a.NewWindow("Hello")
-	w.Resize(fyne.Size{
-		Width:  500,
-		Height: 500,
-	})
-	hello := widget.NewLabel("Hello Fyne!")
-	w.SetContent(container.NewVBox(
-		hello,
-		widget.NewButton("Hi!", func() {
-			hello.SetText("Welcome :)")
-		}),
-	))
+	app := app.New()
 
-	w.ShowAndRun()
+	// setting theme
+	app.Settings().SetTheme(
+		NewMyTheme(),
+	)
+
+	// set title
+	window := app.NewWindow("Database Tool")
+
+	// set content
+	window.SetContent(
+		MakeUI(),
+	)
+
+	// run
+	window.ShowAndRun()
 }
