@@ -1,11 +1,15 @@
 package main
 
-import "fyne.io/fyne/v2"
+import (
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/theme"
+)
 
 const sideWidth = 220
 
 type layout struct {
 	top, left, right, content fyne.CanvasObject
+	dividers                  [3]fyne.CanvasObject
 }
 
 // Layout will manipulate the listed CanvasObjects Size and Position
@@ -22,6 +26,17 @@ func (l *layout) Layout(_ []fyne.CanvasObject, size fyne.Size) {
 
 	l.content.Move(fyne.NewPos(sideWidth, topHeight))
 	l.content.Resize(fyne.NewSize(size.Width-sideWidth*2, size.Height-topHeight))
+
+	divierThickness := theme.SeparatorThicknessSize()
+
+	l.dividers[0].Move(fyne.NewPos(0, topHeight))
+	l.dividers[0].Resize(fyne.NewSize(size.Width, divierThickness))
+
+	l.dividers[1].Move(fyne.NewPos(sideWidth, topHeight))
+	l.dividers[1].Resize(fyne.NewSize(divierThickness, size.Height-topHeight))
+
+	l.dividers[2].Move(fyne.NewPos(size.Width-sideWidth, topHeight))
+	l.dividers[2].Resize(fyne.NewSize(divierThickness, size.Height-topHeight))
 }
 
 // MinSize calculates the smallest size that will fit the listed
@@ -35,13 +50,14 @@ func (l *layout) MinSize(objects []fyne.CanvasObject) fyne.Size {
 	return borders.AddWidthHeight(100, 100)
 }
 
-func newLayout(top, left, right, content fyne.CanvasObject) fyne.Layout {
+func newLayout(top, left, right, content fyne.CanvasObject, dividers [3]fyne.CanvasObject) fyne.Layout {
 
 	return &layout{
-		top:     top,
-		left:    left,
-		right:   right,
-		content: content,
+		top:      top,
+		left:     left,
+		right:    right,
+		content:  content,
+		dividers: dividers,
 	}
 
 }
