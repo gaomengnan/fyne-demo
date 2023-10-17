@@ -19,11 +19,12 @@ func NameBanner() fyne.CanvasObject {
 	)
 	logo := canvas.NewImageFromResource(resourceLogoPng)
 	logo.FillMode = canvas.ImageFillContain
-	return container.NewStack(toolBar, logo)
+	return container.NewStack(toolBar, container.NewPadded(logo))
 
 }
 
 func MakeUI() fyne.CanvasObject {
+	top := NameBanner()
 	left := widget.NewLabel("Left")
 	right := widget.NewLabel("Right")
 
@@ -35,12 +36,6 @@ func MakeUI() fyne.CanvasObject {
 			Y: 0xee,
 		},
 	)
-
-	return container.NewBorder(
-		NameBanner(),
-		nil,
-		left,
-		right,
-		content,
-	)
+	objs := []fyne.CanvasObject{content, top, left, right}
+	return container.New(newLayout(top, left, right, content), objs...)
 }

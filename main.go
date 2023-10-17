@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 )
 
@@ -14,6 +15,7 @@ func main() {
 
 	// set title
 	window := app.NewWindow("Database Tool")
+	window.Resize(fyne.NewSize(1024, 768))
 
 	// set content
 	window.SetContent(
