@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"image/color"
 
 	"fyne.io/fyne/v2"
@@ -71,9 +72,33 @@ func (g *gui) makeMenu() *fyne.MainMenu {
 }
 
 func (g *gui) showCreate(w fyne.Window) {
-	mainPage := widget.NewForm(nil)
-	wizard := dialogs.NewWizard("Create Connection", mainPage)
+	var wizard *dialogs.Wizard
+	open := widget.NewButton("New", func() {
+		wizard.Push("Connection Details", g.makeCreate(wizard))
+	})
+	buttons := container.NewGridWithColumns(1, open)
+	mainPage := container.NewVBox(buttons)
+	wizard = dialogs.NewWizard("Create Connection", mainPage)
 	wizard.Show(w)
+	wizard.Resize(mainPage.MinSize().AddWidthHeight(300, 40))
+}
+func (g *gui) makeCreate(wizard *dialogs.Wizard) fyne.CanvasObject {
+	entry := data.NewConnectionData()
+	form := widget.NewForm(
+		widget.NewFormItem("Name", entry.Name),
+		widget.NewFormItem("Host", entry.Host),
+		widget.NewFormItem("Port", entry.Port),
+		widget.NewFormItem("UserName", entry.User),
+		widget.NewFormItem("Password", entry.Password),
+	)
+
+	form.OnSubmit = func() {
+		if entry.Name.Text == "" {
+			dialog.ShowError(errors.New("Empty Name"), g.w)
+			return
+		}
+	}
+	return form
 }
 
 func (g *gui) openCreateConnection() {

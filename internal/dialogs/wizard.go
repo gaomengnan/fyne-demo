@@ -66,3 +66,12 @@ func (w *Wizard) wrap(title string, content fyne.CanvasObject) fyne.CanvasObject
 	return container.NewBorder(nav, nil, nil, nil, content)
 
 }
+
+func (w *Wizard) Resize(size fyne.Size) {
+
+	if w.d == nil {
+		return
+	}
+
+	w.d.Resize(size)
+}

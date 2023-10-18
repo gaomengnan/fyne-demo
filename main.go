@@ -15,7 +15,8 @@ func main() {
 
 	// set title
 	window := app.NewWindow("Database Tool")
-	window.Resize(fyne.NewSize(1024, 768))
+	window.Resize(fyne.NewSize(768, 480))
+	window.CenterOnScreen()
 
 	ui := newUI(window)
 	// set content
@@ -25,6 +26,10 @@ func main() {
 
 	// set main menu
 	window.SetMainMenu(ui.makeMenu())
+
+	// show create button
+
+	ui.showCreate(window)
 
 	// run
 	window.ShowAndRun()

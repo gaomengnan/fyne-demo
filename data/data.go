@@ -2,6 +2,7 @@ package data
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"os"
 
@@ -23,12 +24,49 @@ type serializationConnectionData struct {
 }
 
 func NewConnectionData() *ConnectionData {
+	var name = widget.NewEntry()
+	var host = widget.NewEntry()
+	var port = widget.NewEntry()
+	var user = widget.NewEntry()
+	var password = widget.NewPasswordEntry()
+
+	name.Validator = func(s string) error {
+		if s == "" {
+			return errors.New("Empty Name !")
+		}
+
+		return nil
+	}
+
+	host.Validator = func(s string) error {
+		if s == "" {
+			return errors.New("Empty Name !")
+		}
+
+		return nil
+	}
+
+	port.Validator = func(s string) error {
+		if s == "" {
+			return errors.New("Empty Name !")
+		}
+
+		return nil
+	}
+
+	user.Validator = func(s string) error {
+		if s == "" {
+			return errors.New("Empty Name !")
+		}
+
+		return nil
+	}
 	return &ConnectionData{
-		Name:     widget.NewEntry(),
-		Host:     widget.NewEntry(),
-		Port:     widget.NewEntry(),
-		User:     widget.NewEntry(),
-		Password: widget.NewPasswordEntry(),
+		Name:     name,
+		Host:     host,
+		Port:     port,
+		User:     user,
+		Password: password,
 	}
 }
 
