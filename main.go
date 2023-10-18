@@ -17,10 +17,14 @@ func main() {
 	window := app.NewWindow("Database Tool")
 	window.Resize(fyne.NewSize(1024, 768))
 
+	ui := newUI(window)
 	// set content
 	window.SetContent(
-		MakeUI(),
+		ui.makeUI(),
 	)
+
+	// set main menu
+	window.SetMainMenu(ui.makeMenu())
 
 	// run
 	window.ShowAndRun()
