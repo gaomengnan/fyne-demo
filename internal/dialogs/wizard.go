@@ -1,6 +1,8 @@
 package dialogs
 
 import (
+	"time"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
@@ -44,6 +46,7 @@ func (w *Wizard) Push(title string, content fyne.CanvasObject) {
 	w.content.Objects = []fyne.CanvasObject{
 		w.stack[len(w.stack)-1],
 	}
+	time.Sleep(time.Millisecond * 100)
 	w.content.Refresh()
 }
 

@@ -3,9 +3,12 @@ package main
 import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
+	"github.com/gaomengnan/fyne-demo/data"
 )
 
 func main() {
+	confs := data.GetConfigs()
+
 	app := app.New()
 
 	// setting theme
@@ -28,8 +31,9 @@ func main() {
 	window.SetMainMenu(ui.makeMenu())
 
 	// show create button
-
-	ui.showCreate(window)
+	if len(confs.Servers) == 0 {
+		ui.showCreate(window)
+	}
 
 	// run
 	window.ShowAndRun()

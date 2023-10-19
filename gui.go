@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"image/color"
 
 	"fyne.io/fyne/v2"
@@ -11,6 +10,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/gaomengnan/fyne-demo/data"
+	"github.com/gaomengnan/fyne-demo/database"
 	"github.com/gaomengnan/fyne-demo/internal/dialogs"
 )
 
@@ -39,7 +39,7 @@ func (g *gui) makeBanner() fyne.CanvasObject {
 
 func (g *gui) makeUI() fyne.CanvasObject {
 	top := g.makeBanner()
-	left := widget.NewLabel("Left")
+	left := g.makeLeftContent()
 	right := widget.NewLabel("Right")
 
 	// content
@@ -65,7 +65,7 @@ func (g *gui) makeMenu() *fyne.MainMenu {
 		"Edit",
 		fyne.NewMenuItem(
 			"New",
-			g.openCreateConnection,
+			func() {},
 		),
 	)
 	return fyne.NewMainMenu(newConnectionMenu)
@@ -93,46 +93,57 @@ func (g *gui) makeCreate(wizard *dialogs.Wizard) fyne.CanvasObject {
 	)
 
 	form.OnSubmit = func() {
-		if entry.Name.Text == "" {
-			dialog.ShowError(errors.New("Empty Name"), g.w)
+		seriallize := entry.Get()
+		err := entry.Save()
+		if err != nil {
+			dialog.ShowError(err, g.w)
 			return
 		}
+		err = database.Connect(seriallize)
+		if err != nil {
+			dialog.ShowError(err, g.w)
+			return
+		}
+		dialog.ShowInformation(seriallize.DSN(), "Connect Successfully", g.w)
 	}
-	return form
+	// 创建额外的按钮
+	extraButton := widget.NewButton("Test Connection", func() {
+		// 在这里添加按钮点击事件的处理逻辑
+		if err := form.Validate(); err != nil {
+			return
+		}
+		err := database.TestConnect(entry.Get())
+		if err != nil {
+			dialog.ShowError(err, g.w)
+			return
+		}
+		dialog.ShowInformation(entry.Get().DSN(), "Connect Successfully", g.w)
+	})
+
+	// 创建一个容器，包括表单和额外按钮
+	content := container.NewVBox(
+		extraButton,
+		form,
+	)
+	return content
 }
 
-func (g *gui) openCreateConnection() {
-	entry := data.NewConnectionData()
-	testButton := widget.NewButton("Test", func() {
-		// 处理提交操作
-	})
-	items := []*widget.FormItem{
-		{
-			Text:   "Name:",
-			Widget: entry.Name,
-		},
-		{
-			Text:   "Host:",
-			Widget: entry.Host,
-		},
-		{
-			Text:   "Port:",
-			Widget: entry.Port,
-		},
-		{
-			Text:   "User:",
-			Widget: entry.User,
-		},
-		{
-			Text:   "Password:",
-			Widget: entry.Password,
-		},
-		widget.NewFormItem("Test Connection", testButton),
-	}
-	dialog.ShowForm("NewConnection", "Submit", "Cancle", items, func(b bool) {
-		if b {
-			// name := entry.Name.Text
-			entry.Save()
-		}
-	}, g.w)
+func (g *gui) makeLeftContent() fyne.CanvasObject {
+	// 创建主级折叠面板
+	mainAccordion := widget.NewAccordion(
+		widget.NewAccordionItem("Main Section 1", container.NewVBox(
+			// 创建次级折叠面板
+			widget.NewAccordion(
+				widget.NewAccordionItem("Subsection 1.1", container.NewVBox(widget.NewLabel("Content 1.1"))),
+				widget.NewAccordionItem("Subsection 1.2", container.NewVBox(widget.NewLabel("Content 1.2"))),
+			),
+		)),
+		widget.NewAccordionItem("Main Section 2", container.NewVBox(widget.NewLabel("Content 2"))),
+	)
+
+	left := widget.NewLabel("Left")
+	return container.NewVBox(
+		left,
+		mainAccordion,
+	)
 }

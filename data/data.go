@@ -1,8 +1,10 @@
 package data
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 
@@ -19,8 +21,13 @@ type ConnectionData struct {
 	Password *widget.Entry
 }
 
-type serializationConnectionData struct {
-	Name, Host, Port, User, Password string
+type SerializationConnectionData struct {
+	Name, Host, Port, User, Password, DbName string
+	Connection                               *sql.DB
+}
+
+func (s *SerializationConnectionData) DSN() string {
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/", s.User, s.Password, s.Host, s.Port)
 }
 
 func NewConnectionData() *ConnectionData {
@@ -29,6 +36,9 @@ func NewConnectionData() *ConnectionData {
 	var port = widget.NewEntry()
 	var user = widget.NewEntry()
 	var password = widget.NewPasswordEntry()
+
+	//set default port
+	port.SetText("3306")
 
 	name.Validator = func(s string) error {
 		if s == "" {
@@ -40,7 +50,7 @@ func NewConnectionData() *ConnectionData {
 
 	host.Validator = func(s string) error {
 		if s == "" {
-			return errors.New("Empty Name !")
+			return errors.New("Empty Host !")
 		}
 
 		return nil
@@ -48,15 +58,17 @@ func NewConnectionData() *ConnectionData {
 
 	port.Validator = func(s string) error {
 		if s == "" {
-			return errors.New("Empty Name !")
+			return errors.New("Empty Port !")
 		}
 
 		return nil
 	}
 
+	port.SetPlaceHolder("3306")
+
 	user.Validator = func(s string) error {
 		if s == "" {
-			return errors.New("Empty Name !")
+			return errors.New("Empty User !")
 		}
 
 		return nil
@@ -70,13 +82,13 @@ func NewConnectionData() *ConnectionData {
 	}
 }
 
-func (c *ConnectionData) Save() {
+func (c *ConnectionData) Save() error {
 	data := c.Get()
-	SaveServer(data)
+	return SaveServer(data)
 }
 
-func (c *ConnectionData) Get() *serializationConnectionData {
-	return &serializationConnectionData{
+func (c *ConnectionData) Get() *SerializationConnectionData {
+	return &SerializationConnectionData{
 		Name:     c.Name.Text,
 		Host:     c.Host.Text,
 		Port:     c.Port.Text,
@@ -85,7 +97,7 @@ func (c *ConnectionData) Get() *serializationConnectionData {
 	}
 }
 func (c *ConnectionData) String() string {
-	jm, _ := json.Marshal(serializationConnectionData{
+	jm, _ := json.Marshal(SerializationConnectionData{
 		Name:     c.Name.Text,
 		Host:     c.Host.Text,
 		Port:     c.Port.Text,
@@ -97,7 +109,7 @@ func (c *ConnectionData) String() string {
 
 // configs
 type Configs struct {
-	Servers []*serializationConnectionData
+	Servers []*SerializationConnectionData
 }
 
 func (c Configs) String() string {
@@ -120,11 +132,19 @@ func GetConfigs() Configs {
 	_ = json.Unmarshal(content, &resp)
 	return resp
 }
-func SaveServer(c *serializationConnectionData) {
+func SaveServer(c *SerializationConnectionData) error {
 	resp := GetConfigs()
+	for _, v := range resp.Servers {
+		if v.Name == c.Name {
+			return errors.New("Connection name has registered")
+		}
+
+	}
 	resp.Servers = append(resp.Servers, c)
 	err := os.WriteFile(configFilePath, []byte(resp.String()), os.ModePerm)
 	if err != nil {
 		panic(err)
 	}
+
+	return nil
 }
