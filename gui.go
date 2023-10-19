@@ -6,6 +6,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
@@ -130,20 +131,28 @@ func (g *gui) makeCreate(wizard *dialogs.Wizard) fyne.CanvasObject {
 
 func (g *gui) makeLeftContent() fyne.CanvasObject {
 	// 创建主级折叠面板
-	mainAccordion := widget.NewAccordion(
-		widget.NewAccordionItem("Main Section 1", container.NewVBox(
-			// 创建次级折叠面板
-			widget.NewAccordion(
-				widget.NewAccordionItem("Subsection 1.1", container.NewVBox(widget.NewLabel("Content 1.1"))),
-				widget.NewAccordionItem("Subsection 1.2", container.NewVBox(widget.NewLabel("Content 1.2"))),
-			),
-		)),
-		widget.NewAccordionItem("Main Section 2", container.NewVBox(widget.NewLabel("Content 2"))),
-	)
+	treeData := binding.NewStringTree()
+	conf := data.GetConfigs()
+	for _, v := range conf.Servers {
+		err := treeData.Append(binding.DataTreeRootID, v.DSN(), v.Name)
+		if err != nil {
+			dialog.ShowError(err, g.w)
+			return nil
+		}
+	}
+	mainAccordion := widget.NewTreeWithData(treeData, func(branch bool) fyne.CanvasObject {
+		container := container.NewGridWithColumns(1, widget.NewLabel("test"))
+		return container
+	},
+		func(di binding.DataItem, b bool, co fyne.CanvasObject) {
+			l := co.(*fyne.Container)
+			label := l.Objects[0].(*widget.Label)
+			u, _ := di.(binding.String).Get()
+			label.SetText(u)
+		})
 
-	left := widget.NewLabel("Left")
-	return container.NewVBox(
-		left,
-		mainAccordion,
-	)
+	mainAccordion.OnSelected = func(uid widget.TreeNodeID) {
+
+	}
+	return mainAccordion
 }

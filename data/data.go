@@ -11,6 +11,8 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
+var Connections = map[widget.TreeNodeID]*sql.DB{}
+
 const configFilePath = "./.config"
 
 type ConnectionData struct {
