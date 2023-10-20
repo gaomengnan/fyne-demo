@@ -38,7 +38,7 @@ func Connect(conf *data.SerializationConnectionData) error {
 		return err
 	}
 	// 一定要在函数结束时关闭数据库连接
-	defer db.Close()
+	// defer db.Close()
 
 	// 测试数据库连接是否正常
 	err = db.Ping()

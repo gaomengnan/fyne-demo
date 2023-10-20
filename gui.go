@@ -1,7 +1,7 @@
 package main
 
 import (
-	"image/color"
+	"fmt"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -16,12 +16,24 @@ import (
 )
 
 type gui struct {
-	w fyne.Window
+	w    fyne.Window
+	left *widget.Tree
+
+	// treedata
+	treeData binding.StringTree
+	// content                 *container.DocTabs
+	currentActiveConnection *string
+
+	// tabs
+	tabs map[string]*container.DocTabs
 }
 
 func newUI(win fyne.Window) *gui {
 	return &gui{
 		w: win,
+		tabs: map[string]*container.DocTabs{
+			"default": container.NewDocTabs(container.NewTabItem("Sql Query", widget.NewLabel("Empty"))),
+		},
 	}
 
 }
@@ -46,17 +58,21 @@ func (g *gui) makeUI() fyne.CanvasObject {
 	// content
 	// content := widget.NewLabel("Content")
 	// content.Alignment = fyne.TextAlignCenter
-	content := canvas.NewRectangle(
-		color.Gray{
-			Y: 0xee,
-		},
-	)
+	// content := canvas.NewRectangle(
+	// 	color.Gray{
+	// 		Y: 0xee,
+	// 	},
+	// )
+
+	content := g.tabs["default"]
 
 	dividers := [3]fyne.CanvasObject{
 		widget.NewSeparator(), widget.NewSeparator(), widget.NewSeparator(),
 	}
 
 	objs := []fyne.CanvasObject{content, top, left, right, dividers[0], dividers[1], dividers[2]}
+
+	g.left = left
 
 	return container.New(newLayout(top, left, right, content, dividers), objs...)
 }
@@ -95,18 +111,25 @@ func (g *gui) makeCreate(wizard *dialogs.Wizard) fyne.CanvasObject {
 
 	form.OnSubmit = func() {
 		seriallize := entry.Get()
-		err := entry.Save()
+		err := database.Connect(seriallize)
 		if err != nil {
 			dialog.ShowError(err, g.w)
 			return
 		}
-		err = database.Connect(seriallize)
+		err = entry.Save()
+		if err != nil {
+			dialog.ShowError(err, g.w)
+			return
+		}
+		err = g.treeData.Append(binding.DataTreeRootID, seriallize.DSN(), seriallize.Name)
 		if err != nil {
 			dialog.ShowError(err, g.w)
 			return
 		}
 		dialog.ShowInformation(seriallize.DSN(), "Connect Successfully", g.w)
+		wizard.Hide()
 	}
+
 	// 创建额外的按钮
 	extraButton := widget.NewButton("Test Connection", func() {
 		// 在这里添加按钮点击事件的处理逻辑
@@ -129,11 +152,10 @@ func (g *gui) makeCreate(wizard *dialogs.Wizard) fyne.CanvasObject {
 	return content
 }
 
-func (g *gui) makeLeftContent() fyne.CanvasObject {
+func (g *gui) makeLeftContent() *widget.Tree {
 	// 创建主级折叠面板
 	treeData := binding.NewStringTree()
-	conf := data.GetConfigs()
-	for _, v := range conf.Servers {
+	for _, v := range data.GlobalConfigure.Servers {
 		err := treeData.Append(binding.DataTreeRootID, v.DSN(), v.Name)
 		if err != nil {
 			dialog.ShowError(err, g.w)
@@ -141,7 +163,8 @@ func (g *gui) makeLeftContent() fyne.CanvasObject {
 		}
 	}
 	mainAccordion := widget.NewTreeWithData(treeData, func(branch bool) fyne.CanvasObject {
-		container := container.NewGridWithColumns(1, widget.NewLabel("test"))
+		label := widget.NewLabel("text")
+		container := container.NewGridWithColumns(1, label)
 		return container
 	},
 		func(di binding.DataItem, b bool, co fyne.CanvasObject) {
@@ -152,7 +175,45 @@ func (g *gui) makeLeftContent() fyne.CanvasObject {
 		})
 
 	mainAccordion.OnSelected = func(uid widget.TreeNodeID) {
+		val, _ := treeData.GetValue(uid)
+		var connectData *data.SerializationConnectionData
+		for _, v := range data.GlobalConfigure.Servers {
+			if v.Name == val {
+				connectData = v
+				break
+			}
 
+		}
+		if connectData.Connection == nil {
+			err := database.Connect(connectData)
+			if err != nil {
+				dialog.ShowError(err, g.w)
+				return
+			}
+		}
+		//
+		fmt.Println(connectData)
+		rows, err := connectData.Connection.Query("SHOW DATABASES")
+		if err != nil {
+			panic(err)
+		}
+
+		defer rows.Close()
+
+		for rows.Next() {
+			var dbName string
+			err := rows.Scan(&dbName)
+			if err != nil {
+				panic(err)
+			}
+
+			err = treeData.Append(uid, fmt.Sprintf("%s-%s", uid, dbName), dbName)
+			if err != nil {
+				return
+			}
+		}
 	}
+
+	g.treeData = treeData
 	return mainAccordion
 }

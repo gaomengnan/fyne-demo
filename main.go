@@ -7,7 +7,10 @@ import (
 )
 
 func main() {
-	confs := data.GetConfigs()
+	err := data.LoadConfig()
+	if err != nil {
+		panic(err)
+	}
 
 	app := app.New()
 
@@ -31,7 +34,7 @@ func main() {
 	window.SetMainMenu(ui.makeMenu())
 
 	// show create button
-	if len(confs.Servers) == 0 {
+	if len(data.GlobalConfigure.Servers) == 0 {
 		ui.showCreate(window)
 	}
 

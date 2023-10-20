@@ -9,6 +9,8 @@ import (
 	"os"
 
 	"fyne.io/fyne/v2/widget"
+	"github.com/fsnotify/fsnotify"
+	"github.com/spf13/viper"
 )
 
 var Connections = map[widget.TreeNodeID]*sql.DB{}
@@ -24,8 +26,14 @@ type ConnectionData struct {
 }
 
 type SerializationConnectionData struct {
-	Name, Host, Port, User, Password, DbName string
-	Connection                               *sql.DB
+	Name       string  `json:"name"`
+	Host       string  `json:"host"`
+	Port       string  `json:"port"`
+	User       string  `json:"user"`
+	Password   string  `json:"password"`
+	DbName     string  `json:"db_name"`
+	Connection *sql.DB `json:"connection"`
+	NodeType   int     `json:"node_type"`
 }
 
 func (s *SerializationConnectionData) DSN() string {
@@ -40,7 +48,11 @@ func NewConnectionData() *ConnectionData {
 	var password = widget.NewPasswordEntry()
 
 	//set default port
+	name.SetText("local")
+	host.SetText("localhost")
+	user.SetText("root")
 	port.SetText("3306")
+	password.SetText("123456")
 
 	name.Validator = func(s string) error {
 		if s == "" {
@@ -110,8 +122,52 @@ func (c *ConnectionData) String() string {
 }
 
 // configs
+
+var GlobalConfigure *Configs
+
 type Configs struct {
-	Servers []*SerializationConnectionData
+	Servers []*SerializationConnectionData `json:"servers"`
+}
+
+func initConfigFile() {
+	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
+		file, err := os.Create(configFilePath)
+		if err != nil {
+			fmt.Println("Error creating file:", err)
+			return
+		}
+		_, err = file.WriteString("{}")
+		if err != nil {
+			return
+		}
+		defer file.Close()
+		fmt.Println("Config File created")
+	}
+}
+
+func LoadConfig() error {
+	initConfigFile()
+	viper.SetConfigFile(configFilePath)
+	viper.SetConfigType("json")
+	if err := viper.ReadInConfig(); err != nil {
+		return err
+	}
+
+	if err := viper.Unmarshal(&GlobalConfigure); err != nil {
+		return err
+	}
+
+	viper.WatchConfig()
+
+	// 配置文件更改时的回调函数
+	viper.OnConfigChange(func(in fsnotify.Event) {
+		fmt.Println("Config file changed:", in.Name)
+		if err := viper.Unmarshal(&GlobalConfigure); err != nil {
+			fmt.Println("Error unmarshaling config:", err)
+		}
+	})
+
+	return nil
 }
 
 func (c Configs) String() string {
@@ -135,18 +191,16 @@ func GetConfigs() Configs {
 	return resp
 }
 func SaveServer(c *SerializationConnectionData) error {
-	resp := GetConfigs()
-	for _, v := range resp.Servers {
+	for _, v := range GlobalConfigure.Servers {
 		if v.Name == c.Name {
 			return errors.New("Connection name has registered")
 		}
-
 	}
-	resp.Servers = append(resp.Servers, c)
-	err := os.WriteFile(configFilePath, []byte(resp.String()), os.ModePerm)
+	GlobalConfigure.Servers = append(GlobalConfigure.Servers, c)
+	viper.Set("servers", GlobalConfigure.Servers)
+	err := viper.WriteConfig()
 	if err != nil {
-		panic(err)
+		return err
 	}
-
 	return nil
 }
